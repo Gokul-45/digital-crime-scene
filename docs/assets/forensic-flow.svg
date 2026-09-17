@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="220" viewBox="0 0 900 220" role="img" aria-label="Animated forensic investigation workflow">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1"><stop stop-color="#080c18"/><stop offset="1" stop-color="#172554"/></linearGradient>
+  </defs>
+  <rect width="900" height="220" rx="22" fill="url(#bg)"/>
+  <text x="450" y="38" text-anchor="middle" fill="#e2e8f0" font-family="Arial" font-size="22" font-weight="700">DIGITAL FORENSIC WORKFLOW</text>
+  <g font-family="Arial" font-size="14" text-anchor="middle">
+    <rect x="35" y="78" width="160" height="82" rx="14" fill="#111827" stroke="#38bdf8" stroke-width="2"/><text x="115" y="112" fill="#7dd3fc">01</text><text x="115" y="135" fill="white">Case Intake</text>
+    <rect x="260" y="78" width="160" height="82" rx="14" fill="#111827" stroke="#a78bfa" stroke-width="2"/><text x="340" y="112" fill="#c4b5fd">02</text><text x="340" y="135" fill="white">Evidence</text>
+    <rect x="485" y="78" width="160" height="82" rx="14" fill="#111827" stroke="#34d399" stroke-width="2"/><text x="565" y="112" fill="#6ee7b7">03</text><text x="565" y="135" fill="white">AI Analysis</text>
+    <rect x="710" y="78" width="155" height="82" rx="14" fill="#111827" stroke="#fbbf24" stroke-width="2"/><text x="787" y="112" fill="#fcd34d">04</text><text x="787" y="135" fill="white">Report</text>
+  </g>
+  <g stroke="#94a3b8" stroke-width="3" fill="none" stroke-linecap="round">
+    <path d="M198 119 H252 M423 119 H477 M648 119 H702"/>
+  </g>
+  <circle r="5" fill="#ffffff"><animateMotion dur="3s" repeatCount="indefinite" path="M198 119 H252 M423 119 H477 M648 119 H702"/></circle>
+  <text x="450" y="195" text-anchor="middle" fill="#94a3b8" font-family="Arial" font-size="12">React • Spring Boot • Python • AI-assisted investigation</text>
+</svg>
