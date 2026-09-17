@@ -4,6 +4,7 @@ import com.crimescene.models.*;
 import com.crimescene.repositories.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -16,14 +17,11 @@ import java.util.*;
 public class CaseController {
     private final CaseRepository caseRepository;
     private final UserRepository userRepository;
-    private final EvidenceRepository evidenceRepository;
-    private final WitnessRepository witnessRepository;
-    private final SuspectRepository suspectRepository;
-    private final TimelineEventRepository timelineEventRepository;
-    private final AIInsightRepository aiInsightRepository;
+    private final JdbcTemplate jdbcTemplate;
 
     @GetMapping
     public ResponseEntity<List<Case>> getAllCases() { return ResponseEntity.ok(caseRepository.findAllOrderByCreatedAtDesc()); }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getCaseById(@PathVariable Long id) { return caseRepository.findById(id).map(ResponseEntity::ok).orElse(ResponseEntity.notFound().build()); }
 
@@ -31,9 +29,13 @@ public class CaseController {
     public ResponseEntity<?> createCase(@RequestBody CaseRequest request) {
         if (request.title() == null || request.title().isBlank()) return ResponseEntity.badRequest().body(Map.of("error", "Title is required"));
         if (request.incidentDate() == null || request.incidentDate().isBlank()) return ResponseEntity.badRequest().body(Map.of("error", "Incident date is required"));
-        Case c = new Case(); c.setCaseNumber("CASE-" + System.currentTimeMillis()); c.setTitle(request.title().trim()); c.setDescription(request.description()); c.setLocation(request.location());
-        c.setLatitude(parseDouble(request.latitude())); c.setLongitude(parseDouble(request.longitude())); c.setCrimeType(blankToNull(request.crimeType())); c.setStatus(Case.CaseStatus.OPEN); c.setPriority(parsePriority(request.priority())); c.setIncidentDate(parseDate(request.incidentDate()));
-        c.setReportedDate(LocalDateTime.now()); c.setCreatedAt(LocalDateTime.now()); c.setUpdatedAt(LocalDateTime.now());
+        Case c = new Case();
+        c.setCaseNumber("CASE-" + System.currentTimeMillis());
+        c.setTitle(request.title().trim()); c.setDescription(request.description()); c.setLocation(request.location());
+        c.setLatitude(parseDouble(request.latitude())); c.setLongitude(parseDouble(request.longitude()));
+        c.setCrimeType(blankToNull(request.crimeType())); c.setStatus(Case.CaseStatus.OPEN); c.setPriority(parsePriority(request.priority()));
+        c.setIncidentDate(parseDate(request.incidentDate())); c.setReportedDate(LocalDateTime.now());
+        c.setCreatedAt(LocalDateTime.now()); c.setUpdatedAt(LocalDateTime.now());
         if (request.createdById() != null) userRepository.findById(request.createdById()).ifPresent(c::setCreatedBy);
         if (request.leadInvestigatorId() != null) userRepository.findById(request.leadInvestigatorId()).ifPresent(c::setLeadInvestigator);
         return ResponseEntity.ok(caseRepository.save(c));
@@ -41,24 +43,41 @@ public class CaseController {
 
     @PutMapping("/{id}")
     public ResponseEntity<?> updateCase(@PathVariable Long id, @RequestBody CaseRequest request) {
-        return caseRepository.findById(id).map(c -> { if (request.title()!=null&&!request.title().isBlank()) c.setTitle(request.title().trim()); if(request.description()!=null)c.setDescription(request.description()); if(request.location()!=null)c.setLocation(request.location()); if(request.status()!=null&&!request.status().isBlank())c.setStatus(Case.CaseStatus.valueOf(request.status().toUpperCase())); if(request.priority()!=null&&!request.priority().isBlank())c.setPriority(parsePriority(request.priority())); if(request.latitude()!=null&&!request.latitude().isBlank())c.setLatitude(parseDouble(request.latitude())); if(request.longitude()!=null&&!request.longitude().isBlank())c.setLongitude(parseDouble(request.longitude())); if(request.leadInvestigatorId()!=null)userRepository.findById(request.leadInvestigatorId()).ifPresent(c::setLeadInvestigator); return ResponseEntity.ok(caseRepository.save(c)); }).orElse(ResponseEntity.notFound().build());
+        return caseRepository.findById(id).map(c -> {
+            if (request.title()!=null && !request.title().isBlank()) c.setTitle(request.title().trim());
+            if (request.description()!=null) c.setDescription(request.description());
+            if (request.location()!=null) c.setLocation(request.location());
+            if (request.status()!=null && !request.status().isBlank()) c.setStatus(Case.CaseStatus.valueOf(request.status().toUpperCase()));
+            if (request.priority()!=null && !request.priority().isBlank()) c.setPriority(parsePriority(request.priority()));
+            if (request.latitude()!=null && !request.latitude().isBlank()) c.setLatitude(parseDouble(request.latitude()));
+            if (request.longitude()!=null && !request.longitude().isBlank()) c.setLongitude(parseDouble(request.longitude()));
+            if (request.leadInvestigatorId()!=null) userRepository.findById(request.leadInvestigatorId()).ifPresent(c::setLeadInvestigator);
+            c.setUpdatedAt(LocalDateTime.now());
+            return ResponseEntity.ok(caseRepository.save(c));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @DeleteMapping("/{id}")
     @Transactional
     public ResponseEntity<?> deleteCase(@PathVariable Long id) {
         if (!caseRepository.existsById(id)) return ResponseEntity.notFound().build();
-        aiInsightRepository.deleteByCaseId(id);
-        timelineEventRepository.deleteByCaseId(id);
-        evidenceRepository.deleteByCaseId(id);
-        witnessRepository.deleteByCaseId(id);
-        suspectRepository.deleteByCaseId(id);
-        caseRepository.deleteById(id);
+        // Delete dependent records first to avoid foreign-key constraint failures.
+        jdbcTemplate.update("DELETE FROM ai_insights WHERE case_id = ?", id);
+        jdbcTemplate.update("DELETE FROM timeline_events WHERE case_id = ?", id);
+        jdbcTemplate.update("DELETE FROM evidence WHERE case_id = ?", id);
+        jdbcTemplate.update("DELETE FROM witnesses WHERE case_id = ?", id);
+        jdbcTemplate.update("DELETE FROM suspects WHERE case_id = ?", id);
+        jdbcTemplate.update("DELETE FROM cases WHERE id = ?", id);
         return ResponseEntity.ok(Map.of("message", "Case deleted"));
     }
 
     @GetMapping("/status/{status}")
     public ResponseEntity<List<Case>> getCasesByStatus(@PathVariable String status) { return ResponseEntity.ok(caseRepository.findByStatus(Case.CaseStatus.valueOf(status.toUpperCase()))); }
-    private static String blankToNull(String v){return v==null||v.isBlank()?null:v;} private static Double parseDouble(String v){return v==null||v.isBlank()?null:Double.valueOf(v);} private static LocalDateTime parseDate(String v){return LocalDateTime.parse(v.length()==16?v+":00":v);} private static Case.Priority parsePriority(String v){return Case.Priority.valueOf(v==null||v.isBlank()?"MEDIUM":v.toUpperCase());}
+
+    private static String blankToNull(String v){ return v==null||v.isBlank()?null:v; }
+    private static Double parseDouble(String v){ return v==null||v.isBlank()?null:Double.valueOf(v); }
+    private static LocalDateTime parseDate(String v){ return LocalDateTime.parse(v.length()==16?v+":00":v); }
+    private static Case.Priority parsePriority(String v){ return Case.Priority.valueOf(v==null||v.isBlank()?"MEDIUM":v.toUpperCase()); }
+
     public record CaseRequest(String title,String description,String location,String latitude,String longitude,String crimeType,String status,String priority,String incidentDate,Long createdById,Long leadInvestigatorId){}
 }
