@@ -1,6 +1,10 @@
 import axios from 'axios'
 
-const API = axios.create({ baseURL: import.meta.env.VITE_API_URL || '/api' })
+// In production, call the deployed Spring Boot API directly. During local Vite development,
+// VITE_API_URL can still be set to /api (or another local backend URL).
+const API = axios.create({
+  baseURL: import.meta.env.VITE_API_URL || 'https://digital-crime-scene.onrender.com/api'
+})
 
 // Attach JWT on every request
 API.interceptors.request.use((config) => {
