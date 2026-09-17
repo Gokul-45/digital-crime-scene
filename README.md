@@ -25,6 +25,8 @@
 
 > **Important:** This is an educational and prototype investigation-support system. AI outputs are assistive and must not be treated as verified forensic conclusions.
 
+![Animated Forensic Workflow](docs/assets/forensic-flow.svg)
+
 ## 🌐 Live Application
 
 | Service | Link |
@@ -50,17 +52,18 @@ Click the **Live Demo** link above to open the deployed application in your brow
 
 ## 🖥️ Interface Showcase
 
-The live interface contains the following major screens. Open the [Live Demo](https://digital-crime-scene-p3b8xsd65-gokul45.vercel.app) to explore them interactively.
+Open the [Live Demo](https://digital-crime-scene-p3b8xsd65-gokul45.vercel.app) to explore the running interface:
 
-| Dashboard | Case Management |
+| Screen | Purpose |
 |---|---|
-| 📊 Overview of active investigations, statistics and charts | 🗂️ Create, search, filter, update and delete cases |
-
-| Evidence | AI Insights |
-|---|---|
-| 🧪 Evidence records and custody information | 🤖 AI-assisted anomaly and inconsistency insights |
-
-> **Screenshot note:** The repository documents the actual application through the live deployment link. Add browser screenshots to this section later if you want a visual gallery of the running UI.
+| 📊 Dashboard | Investigation statistics, charts and active-case overview |
+| 🗂️ Case Management | Create, search, filter, update, change status and delete cases |
+| 🧪 Evidence | Evidence records and custody information |
+| 👁️ Witnesses | Witness records and statement analysis |
+| 🧍 Suspects | Suspect profiles and probability scoring |
+| 🕒 Timeline | Chronological reconstruction of incident events |
+| 🤖 AI Insights | AI-assisted anomaly and inconsistency insights |
+| 📄 Reports | Investigation report generation and PDF export |
 
 ## 🧩 System Architecture
 
