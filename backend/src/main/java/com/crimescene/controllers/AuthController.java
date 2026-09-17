@@ -6,6 +6,7 @@ import com.crimescene.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.*;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -15,7 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Auth Controller — Login and Registration endpoints
+ * Auth Controller — Login, session validation and registration endpoints.
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -36,24 +37,26 @@ public class AuthController {
             authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.username(), request.password())
             );
-        } catch (BadCredentialsException e) {
+        } catch (AuthenticationException e) {
             return ResponseEntity.status(401).body(Map.of("error", "Invalid username or password"));
         }
 
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.username());
         String token = jwtUtil.generateToken(userDetails);
-
         User user = userRepository.findByUsername(request.username()).orElseThrow();
+        return ResponseEntity.ok(userResponse(token, user));
+    }
 
-        Map<String, Object> response = new HashMap<>();
-        response.put("token", token);
-        response.put("username", user.getUsername());
-        response.put("email", user.getEmail());
-        response.put("role", user.getRole().name());
-        response.put("fullName", user.getFullName());
-        response.put("id", user.getId());
+    /** GET /api/auth/me — validates the stored JWT and refreshes the current user state. */
+    @GetMapping("/me")
+    public ResponseEntity<?> me(Authentication authentication) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required"));
+        }
 
-        return ResponseEntity.ok(response);
+        return userRepository.findByUsername(authentication.getName())
+            .map(user -> ResponseEntity.ok(userResponse(null, user)))
+            .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "User no longer exists")));
     }
 
     /** POST /api/auth/register */
@@ -78,7 +81,17 @@ public class AuthController {
         return ResponseEntity.ok(Map.of("message", "User registered successfully"));
     }
 
-    // Request records
+    private Map<String, Object> userResponse(String token, User user) {
+        Map<String, Object> response = new HashMap<>();
+        if (token != null) response.put("token", token);
+        response.put("username", user.getUsername());
+        response.put("email", user.getEmail());
+        response.put("role", user.getRole().name());
+        response.put("fullName", user.getFullName());
+        response.put("id", user.getId());
+        return response;
+    }
+
     public record LoginRequest(String username, String password) {}
     public record RegisterRequest(String username, String email, String password,
                                   String fullName, String role) {}
