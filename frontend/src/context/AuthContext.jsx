@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react'
-import { login as loginApi } from '../services/api'
+import { login as loginApi, getCurrentUser } from '../services/api'
 
 const AuthContext = createContext(null)
 
@@ -8,14 +8,32 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('user')
+    let active = true
+
+    const restoreSession = async () => {
       const token = localStorage.getItem('token')
-      if (stored && token) setUser(JSON.parse(stored))
-    } catch {
-      localStorage.clear()
+      if (!token) {
+        if (active) setLoading(false)
+        return
+      }
+
+      try {
+        // Never trust localStorage alone. Ask the backend whether this JWT is still valid.
+        const { data } = await getCurrentUser()
+        if (!active) return
+        localStorage.setItem('user', JSON.stringify(data))
+        setUser(data)
+      } catch {
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        if (active) setUser(null)
+      } finally {
+        if (active) setLoading(false)
+      }
     }
-    setLoading(false)
+
+    restoreSession()
+    return () => { active = false }
   }, [])
 
   const login = async (username, password) => {
@@ -27,7 +45,8 @@ export function AuthProvider({ children }) {
   }
 
   const logout = () => {
-    localStorage.clear()
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
     setUser(null)
   }
 
