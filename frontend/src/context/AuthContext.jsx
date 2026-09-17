@@ -8,26 +8,22 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const stored = localStorage.getItem('user')
-    if (stored) setUser(JSON.parse(stored))
+    try {
+      const stored = localStorage.getItem('user')
+      const token = localStorage.getItem('token')
+      if (stored && token) setUser(JSON.parse(stored))
+    } catch {
+      localStorage.clear()
+    }
     setLoading(false)
   }, [])
 
   const login = async (username, password) => {
-    try {
-      const { data } = await loginApi({ username, password })
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data))
-      setUser(data)
-      return data
-    } catch (err) {
-      console.warn("Backend is not ready, bypassing login for demo purposes!");
-      const mockData = { id: 1, username, role: 'admin', token: 'mock-token-123' };
-      localStorage.setItem('token', mockData.token)
-      localStorage.setItem('user', JSON.stringify(mockData))
-      setUser(mockData)
-      return mockData
-    }
+    const { data } = await loginApi({ username, password })
+    localStorage.setItem('token', data.token)
+    localStorage.setItem('user', JSON.stringify(data))
+    setUser(data)
+    return data
   }
 
   const logout = () => {
