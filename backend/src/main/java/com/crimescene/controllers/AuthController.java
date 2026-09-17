@@ -5,8 +5,10 @@ import com.crimescene.repositories.UserRepository;
 import com.crimescene.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -30,7 +32,6 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
-    /** POST /api/auth/login */
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
         try {
@@ -47,7 +48,6 @@ public class AuthController {
         return ResponseEntity.ok(userResponse(token, user));
     }
 
-    /** GET /api/auth/me — validates the stored JWT and refreshes the current user state. */
     @GetMapping("/me")
     public ResponseEntity<?> me(Authentication authentication) {
         if (authentication == null || !authentication.isAuthenticated()) {
@@ -59,7 +59,6 @@ public class AuthController {
             .orElseGet(() -> ResponseEntity.status(401).body(Map.of("error", "User no longer exists")));
     }
 
-    /** POST /api/auth/register */
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
         if (userRepository.existsByUsername(request.username())) {
@@ -76,8 +75,8 @@ public class AuthController {
         user.setFullName(request.fullName());
         user.setRole(User.Role.valueOf(request.role().toUpperCase()));
         user.setIsActive(true);
-
         userRepository.save(user);
+
         return ResponseEntity.ok(Map.of("message", "User registered successfully"));
     }
 
