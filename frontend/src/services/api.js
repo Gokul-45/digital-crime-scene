@@ -1,25 +1,22 @@
 import axios from 'axios'
 
-// In production, call the deployed Spring Boot API directly. During local Vite development,
-// VITE_API_URL can still be set to /api (or another local backend URL).
 const API = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'https://digital-crime-scene.onrender.com/api'
 })
 
-// Attach JWT on every request
 API.interceptors.request.use((config) => {
   const token = localStorage.getItem('token')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
-// Auto-logout on 401
 API.interceptors.response.use(
   (res) => res,
   (err) => {
-    if (err.response?.status === 401) {
-      localStorage.clear()
-      window.location.href = '/login'
+    if (err.response?.status === 401 && !err.config?.url?.includes('/auth/login')) {
+      localStorage.removeItem('token')
+      localStorage.removeItem('user')
+      if (window.location.pathname !== '/login') window.location.href = '/login'
     }
     return Promise.reject(err)
   }
@@ -27,6 +24,7 @@ API.interceptors.response.use(
 
 // Auth
 export const login = (data) => API.post('/auth/login', data)
+export const getCurrentUser = () => API.get('/auth/me')
 export const register = (data) => API.post('/auth/register', data)
 
 // Dashboard
